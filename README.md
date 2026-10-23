@@ -1,6 +1,6 @@
-# __NAME__
+# terraform-google-cloud-run-service
 
-__DESCRIPTION__
+Cloud Run v2 service with a dedicated service account, secret-backed environment, scaling, VPC egress, internal ingress by default and optional Eventarc triggers
 
 ## Opinions
 
@@ -10,7 +10,7 @@ __DESCRIPTION__
 
 ```hcl
 module "this" {
-  source = "git::https://github.com/Olensys/__NAME__.git?ref=v1.0.0"
+  source = "git::https://github.com/Olensys/terraform-google-cloud-run-service.git?ref=v1.0.0"
 
   name = "example"
   context = {
