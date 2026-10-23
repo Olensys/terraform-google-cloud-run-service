@@ -14,14 +14,20 @@ Cloud Run v2 service with a dedicated service account, secret-backed environment
 - Deletion protection is on when `context.environment` is `prod`.
 - Cloud Storage triggers (`bucket` set) also grant `roles/pubsub.publisher` to the project's Cloud Storage service agent. The trigger location is `region`, which must match the bucket location (a multi-region bucket needs a trigger in the matching multi-region location).
 - Eventarc triggers run as the runtime service account, which receives `roles/eventarc.eventReceiver` and `roles/run.invoker`.
+- `context.extra_tags` keys and values are normalised to valid GCP label syntax (lowercase, `[^a-z0-9_-]` → `-`, 63 chars); `labels` are applied verbatim and win.
 
 ## Usage
 
 ```hcl
-module "this" {
-  source = "git::https://github.com/Olensys/terraform-google-cloud-run-service.git?ref=v1.0.0"
+module "naming" {
+  source  = "git::https://github.com/Olensys/terraform-null-naming.git?ref=v1.0.1"
+  context = var.context
+}
 
-  name       = "example-app"
+module "this" {
+  source = "git::https://github.com/Olensys/terraform-google-cloud-run-service.git?ref=v1.1.0"
+
+  name       = module.naming.name
   project_id = "my-project"
   region     = "europe-west1"
   image      = "us-docker.pkg.dev/cloudrun/container/hello"
@@ -32,6 +38,8 @@ module "this" {
     owner        = "platform"
     cost_center  = "eng"
   }
+
+  labels = module.naming.labels
 }
 ```
 
