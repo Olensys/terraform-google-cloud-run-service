@@ -1,5 +1,7 @@
 locals {
-  labels = merge(var.context.extra_tags, var.labels)
+  extra_labels = { for k, v in var.context.extra_tags :
+  substr(replace(lower(k), "/[^a-z0-9_-]/", "-"), 0, 63) => substr(replace(lower(v), "/[^a-z0-9_-]/", "-"), 0, 63) }
+  labels = merge(local.extra_labels, var.labels)
 
   create_sa = var.create && var.service_account_email == null
   sa_email  = var.create ? (var.service_account_email != null ? var.service_account_email : try(google_service_account.this[0].email, null)) : null
