@@ -1,7 +1,185 @@
-# Primary upstream call or primary resource is named `this`.
-# Gate every resource on var.create (count = var.create ? 1 : 0).
-
 locals {
-  # Merge onto every taggable resource, with var.tags applied last.
-  tags = merge(var.context.extra_tags, var.tags)
+  labels = merge(var.context.extra_tags, var.labels)
+
+  create_sa = var.create && var.service_account_email == null
+  sa_email  = var.create ? (var.service_account_email != null ? var.service_account_email : google_service_account.this[0].email) : null
+  sa_member = var.create ? "serviceAccount:${local.sa_email}" : null
+
+  # Full secret names for IAM, short ids expanded into the module project.
+  secret_names = toset([
+    for s in values(var.secret_env) :
+    startswith(s, "projects/") ? s : "projects/${var.project_id}/secrets/${s}"
+  ])
+
+  has_triggers = var.create && length(var.eventarc_triggers) > 0
+}
+
+resource "google_service_account" "this" {
+  count = local.create_sa ? 1 : 0
+
+  project      = var.project_id
+  account_id   = replace(substr(var.name, 0, 30), "/-+$/", "")
+  display_name = "Cloud Run service ${var.name}"
+}
+
+resource "google_cloud_run_v2_service" "this" {
+  count = var.create ? 1 : 0
+
+  project             = var.project_id
+  name                = var.name
+  location            = var.region
+  launch_stage        = "GA"
+  ingress             = var.ingress
+  deletion_protection = var.context.environment == "prod"
+  labels              = local.labels
+
+  template {
+    service_account                  = local.sa_email
+    execution_environment            = "EXECUTION_ENVIRONMENT_GEN2"
+    max_instance_request_concurrency = var.scaling.concurrency
+    labels                           = local.labels
+
+    scaling {
+      min_instance_count = var.scaling.min
+      max_instance_count = var.scaling.max
+    }
+
+    containers {
+      image = var.image
+
+      ports {
+        container_port = var.port
+      }
+
+      resources {
+        limits = {
+          cpu    = var.resources.cpu
+          memory = var.resources.memory
+        }
+        cpu_idle          = true
+        startup_cpu_boost = true
+      }
+
+      dynamic "env" {
+        for_each = var.env
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.secret_env
+        content {
+          name = env.key
+          value_source {
+            secret_key_ref {
+              secret  = env.value
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      startup_probe {
+        tcp_socket {
+          port = var.port
+        }
+      }
+    }
+
+    dynamic "vpc_access" {
+      for_each = var.vpc == null ? [] : [var.vpc]
+      content {
+        egress = vpc_access.value.egress
+        network_interfaces {
+          network    = vpc_access.value.network
+          subnetwork = vpc_access.value.subnet
+        }
+      }
+    }
+  }
+
+  depends_on = [google_secret_manager_secret_iam_member.runtime]
+}
+
+resource "google_cloud_run_v2_service_iam_member" "invoker" {
+  for_each = var.create ? toset(var.invoker_members) : toset([])
+
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.this[0].name
+  role     = "roles/run.invoker"
+  member   = each.value
+}
+
+resource "google_secret_manager_secret_iam_member" "runtime" {
+  for_each = var.create ? local.secret_names : toset([])
+
+  project   = var.project_id
+  secret_id = each.value
+  role      = "roles/secretmanager.secretAccessor"
+  member    = local.sa_member
+}
+
+resource "google_project_iam_member" "eventarc_receiver" {
+  count = local.has_triggers ? 1 : 0
+
+  project = var.project_id
+  role    = "roles/eventarc.eventReceiver"
+  member  = local.sa_member
+}
+
+resource "google_cloud_run_v2_service_iam_member" "eventarc_invoker" {
+  count = local.has_triggers ? 1 : 0
+
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.this[0].name
+  role     = "roles/run.invoker"
+  member   = local.sa_member
+}
+
+resource "google_eventarc_trigger" "this" {
+  for_each = var.create ? var.eventarc_triggers : {}
+
+  project         = var.project_id
+  name            = "${var.name}-${each.key}"
+  location        = var.region
+  service_account = local.sa_email
+  labels          = local.labels
+
+  matching_criteria {
+    attribute = "type"
+    value     = each.value.event_type
+  }
+
+  dynamic "matching_criteria" {
+    for_each = each.value.bucket == null ? [] : [each.value.bucket]
+    content {
+      attribute = "bucket"
+      value     = matching_criteria.value
+    }
+  }
+
+  destination {
+    cloud_run_service {
+      service = google_cloud_run_v2_service.this[0].name
+      region  = var.region
+    }
+  }
+
+  dynamic "transport" {
+    for_each = each.value.pubsub_topic == null ? [] : [each.value.pubsub_topic]
+    content {
+      pubsub {
+        topic = transport.value
+      }
+    }
+  }
+
+  depends_on = [
+    google_project_iam_member.eventarc_receiver,
+    google_cloud_run_v2_service_iam_member.eventarc_invoker,
+  ]
 }

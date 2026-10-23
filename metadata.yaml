@@ -4,7 +4,7 @@ tier: capability          # primitive | capability | blueprint
 maturity: experimental    # experimental | stable | deprecated
 description: Cloud Run v2 service with a dedicated service account, secret-backed environment, scaling, VPC egress, internal ingress by default and optional Eventarc triggers
 owners: [platform]
-upstream: null            # e.g. "terraform-aws-modules/s3-bucket/aws 5.17.0"
-pairs_with: null          # e.g. "terraform-google-gcs-bucket"
+upstream: null
+pairs_with: terraform-aws-ecs-service
 registry_name: terraform-google-cloud-run-service
 deprecated: null          # { removal: YYYY-MM-DD, replacement: <repo> }
