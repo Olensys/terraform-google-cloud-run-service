@@ -11,14 +11,32 @@ locals {
     startswith(s, "projects/") ? s : "projects/${var.project_id}/secrets/${s}"
   ])
 
-  has_triggers = var.create && length(var.eventarc_triggers) > 0
+  has_triggers     = var.create && length(var.eventarc_triggers) > 0
+  has_gcs_triggers = var.create && length([for t in var.eventarc_triggers : t if t.bucket != null]) > 0
+  sa_account_id    = replace(substr(var.name, 0, 30), "/-+$/", "")
+}
+
+# Cloud Storage triggers publish through Pub/Sub; the project's Cloud Storage
+# service agent needs roles/pubsub.publisher for that.
+data "google_storage_project_service_account" "gcs" {
+  count = local.has_gcs_triggers ? 1 : 0
+
+  project = var.project_id
+}
+
+resource "google_project_iam_member" "gcs_pubsub_publisher" {
+  count = local.has_gcs_triggers ? 1 : 0
+
+  project = var.project_id
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:${data.google_storage_project_service_account.gcs[0].email_address}"
 }
 
 resource "google_service_account" "this" {
   count = local.create_sa ? 1 : 0
 
   project      = var.project_id
-  account_id   = replace(substr(var.name, 0, 30), "/-+$/", "")
+  account_id   = local.sa_account_id
   display_name = "Cloud Run service ${var.name}"
 }
 
@@ -180,6 +198,7 @@ resource "google_eventarc_trigger" "this" {
 
   depends_on = [
     google_project_iam_member.eventarc_receiver,
+    google_project_iam_member.gcs_pubsub_publisher,
     google_cloud_run_v2_service_iam_member.eventarc_invoker,
   ]
 }

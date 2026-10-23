@@ -326,3 +326,55 @@ run "test_tags_contract" {
     error_message = "context.extra_tags is merged."
   }
 }
+
+run "test_storage_trigger_grants_gcs_publisher" {
+  command = plan
+
+  variables {
+    eventarc_triggers = {
+      uploads = { event_type = "google.cloud.storage.object.v1.finalized", bucket = "my-bucket" }
+    }
+  }
+
+  assert {
+    condition     = length(google_project_iam_member.gcs_pubsub_publisher) == 1 && google_project_iam_member.gcs_pubsub_publisher[0].role == "roles/pubsub.publisher"
+    error_message = "Storage triggers grant pubsub.publisher to the Cloud Storage service agent."
+  }
+}
+
+run "test_pubsub_trigger_no_gcs_publisher" {
+  command = plan
+
+  variables {
+    eventarc_triggers = {
+      events = { event_type = "google.cloud.pubsub.topic.v1.messagePublished", pubsub_topic = "projects/example-project/topics/t" }
+    }
+  }
+
+  assert {
+    condition     = length(google_project_iam_member.gcs_pubsub_publisher) == 0
+    error_message = "No GCS publisher grant without storage triggers."
+  }
+}
+
+run "test_bucket_only_for_storage_events" {
+  command = plan
+
+  variables {
+    eventarc_triggers = {
+      events = { event_type = "google.cloud.pubsub.topic.v1.messagePublished", bucket = "b" }
+    }
+  }
+
+  expect_failures = [var.eventarc_triggers]
+}
+
+run "test_short_name_rejected_for_created_sa" {
+  command = plan
+
+  variables {
+    name = "app"
+  }
+
+  expect_failures = [output.service_account_email]
+}

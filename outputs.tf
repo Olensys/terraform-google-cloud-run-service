@@ -31,6 +31,11 @@ output "uri" {
 output "service_account_email" {
   description = "Runtime service account email (created or supplied). Null when create is false."
   value       = local.sa_email
+
+  precondition {
+    condition     = !local.create_sa || length(local.sa_account_id) >= 6
+    error_message = "A module-created service account needs name to give an account id of at least 6 characters; use a longer name or set service_account_email."
+  }
 }
 
 output "labels" {

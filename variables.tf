@@ -138,6 +138,10 @@ variable "eventarc_triggers" {
     condition     = alltrue([for t in values(var.eventarc_triggers) : !startswith(t.event_type, "google.cloud.storage.") || t.bucket != null])
     error_message = "Storage event types (google.cloud.storage.*) require bucket."
   }
+  validation {
+    condition     = alltrue([for t in values(var.eventarc_triggers) : t.bucket == null || startswith(t.event_type, "google.cloud.storage.")])
+    error_message = "bucket may be set only for storage event types (google.cloud.storage.*)."
+  }
 }
 
 variable "labels" {

@@ -12,6 +12,7 @@ Cloud Run v2 service with a dedicated service account, secret-backed environment
 - Startup probe: TCP check on `port`.
 - CPU throttling (`cpu_idle`) and startup CPU boost are on.
 - Deletion protection is on when `context.environment` is `prod`.
+- Cloud Storage triggers (`bucket` set) also grant `roles/pubsub.publisher` to the project's Cloud Storage service agent. The trigger location is `region`, which must match the bucket location (a multi-region bucket needs a trigger in the matching multi-region location).
 - Eventarc triggers run as the runtime service account, which receives `roles/eventarc.eventReceiver` and `roles/run.invoker`.
 
 ## Usage
@@ -61,8 +62,10 @@ No modules.
 | [google_cloud_run_v2_service_iam_member.invoker](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service_iam_member) | resource |
 | [google_eventarc_trigger.this](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/eventarc_trigger) | resource |
 | [google_project_iam_member.eventarc_receiver](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
+| [google_project_iam_member.gcs_pubsub_publisher](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
 | [google_secret_manager_secret_iam_member.runtime](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_iam_member) | resource |
 | [google_service_account.this](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
+| [google_storage_project_service_account.gcs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/storage_project_service_account) | data source |
 
 ## Inputs
 
