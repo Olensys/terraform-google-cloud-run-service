@@ -376,5 +376,6 @@ run "test_short_name_rejected_for_created_sa" {
     name = "app"
   }
 
-  expect_failures = [output.service_account_email]
+  # The provider rejects the short account id itself at plan, ahead of the output precondition.
+  expect_failures = [google_service_account.this]
 }
