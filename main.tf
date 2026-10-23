@@ -2,8 +2,8 @@ locals {
   labels = merge(var.context.extra_tags, var.labels)
 
   create_sa = var.create && var.service_account_email == null
-  sa_email  = var.create ? (var.service_account_email != null ? var.service_account_email : google_service_account.this[0].email) : null
-  sa_member = var.create ? "serviceAccount:${local.sa_email}" : null
+  sa_email  = var.create ? (var.service_account_email != null ? var.service_account_email : try(google_service_account.this[0].email, null)) : null
+  sa_member = local.sa_email == null ? null : "serviceAccount:${local.sa_email}"
 
   # Full secret names for IAM, short ids expanded into the module project.
   secret_names = toset([
@@ -33,7 +33,8 @@ resource "google_project_iam_member" "gcs_pubsub_publisher" {
 }
 
 resource "google_service_account" "this" {
-  count = local.create_sa ? 1 : 0
+  # Not planned for an account id the provider would reject; output.service_account_email reports why.
+  count = local.create_sa && length(local.sa_account_id) >= 6 ? 1 : 0
 
   project      = var.project_id
   account_id   = local.sa_account_id
