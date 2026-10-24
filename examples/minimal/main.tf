@@ -18,7 +18,7 @@ provider "google" {
 module "this" {
   source = "../../"
 
-  name       = "example-app"
+  name       = "olensys-test-run"
   project_id = var.project_id
   region     = "europe-west1"
   image      = "us-docker.pkg.dev/cloudrun/container/hello"
@@ -26,7 +26,7 @@ module "this" {
   context = {
     organization = "olensys"
     environment  = "test"
-    application  = "example"
+    application  = "run"
     owner        = "platform"
     cost_center  = "eng"
   }
