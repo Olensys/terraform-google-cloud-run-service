@@ -19,6 +19,16 @@ Cloud Run v2 service with a dedicated service account, secret-backed environment
 ## Usage
 
 ```hcl
+variable "context" {
+  default = {
+    organization = "olensys"
+    environment  = "dev"
+    application  = "example"
+    owner        = "platform"
+    cost_center  = "eng"
+  }
+}
+
 module "naming" {
   source  = "git::https://github.com/Olensys/terraform-null-naming.git?ref=v1.0.1"
   context = var.context
@@ -31,13 +41,7 @@ module "this" {
   project_id = "my-project"
   region     = "europe-west1"
   image      = "us-docker.pkg.dev/cloudrun/container/hello"
-  context = {
-    organization = "olensys"
-    environment  = "dev"
-    application  = "example"
-    owner        = "platform"
-    cost_center  = "eng"
-  }
+  context = var.context
 
   labels = module.naming.labels
 }
