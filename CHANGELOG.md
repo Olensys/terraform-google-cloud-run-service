@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/Olensys/terraform-google-cloud-run-service/compare/v1.1.0...v1.1.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* run integration on change and weekly instead of nightly ([181b50c](https://github.com/Olensys/terraform-google-cloud-run-service/commit/181b50c7d634535f1dfd5dfdd9659bfbe79ca8ca))
+
 ## 1.1.0
 
 ### Fixes
