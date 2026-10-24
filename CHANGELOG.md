@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/Olensys/terraform-google-cloud-run-service/compare/v1.1.1...v1.1.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **examples:** unique application slug so concurrent integration runs do not collide ([#3](https://github.com/Olensys/terraform-google-cloud-run-service/issues/3)) ([9ac0bda](https://github.com/Olensys/terraform-google-cloud-run-service/commit/9ac0bdac0882902394209c101e02b0a5f5bde0ca))
+
 ## [1.1.1](https://github.com/Olensys/terraform-google-cloud-run-service/compare/v1.1.0...v1.1.1) (2026-10-24)
 
 
